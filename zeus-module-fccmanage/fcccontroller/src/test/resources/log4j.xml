@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+    <appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
+        <param name="encoding" value="utf-8" />
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d [%7r] %6p - %30.30c - %m \n" />
+        </layout>
+        <filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <param name="LevelMin" value="DEBUG" />
+        </filter>
+    </appender>
+
+    <appender name="FILE" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="encoding" value="UTF-8" />
+        <param name="DatePattern" value="'.'yyyy-MM-dd" />
+        <param name="Append" value="true" />
+        <param name="file" value="/export/home/tomcat/logs/helios-web.log" />
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d [%7r] %6p - %30.30c - %m \n" />
+        </layout>
+        <filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <param name="LevelMin" value="DEBUG" />
+        </filter>
+    </appender>
+
+    <root>
+        <priority value="debug"></priority>
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE"></appender-ref>
+    </root>
+</log4j:configuration>

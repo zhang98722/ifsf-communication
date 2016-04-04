@@ -1,6 +1,7 @@
 package com.baptechs.zeus.module.fccmanage.message;
 
 import com.baptechs.logistics.guardian.util.StringUtil;
+import com.baptechs.zeus.domain.common.redis.RedisKeyHelper;
 import com.baptechs.zeus.module.fccmanage.ifsf.MessageCodeType;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,12 +19,12 @@ import java.nio.ByteBuffer;
 public class HeartbeatMessage extends IFSFMsg{
 
     @Getter @Setter Integer             ip;
-    String                              ipString;
     @Getter @Setter Integer             port;
     @Getter @Setter Integer             lnao;
     @Getter @Setter Integer             messageCode                     = MessageCodeType.MESSAGE_CODE_HEARTBEAT_MSG;
     @Getter @Setter Integer             status                          =0;
 
+    String                              ipString;
     @Getter @Setter Integer             subnet;
     @Getter @Setter Integer             nodeId;
 
@@ -70,6 +71,10 @@ public class HeartbeatMessage extends IFSFMsg{
         message.nodeId=message.lnao<<24>>24;
 
         return message;
+    }
+
+    public String getDeviceKey(){
+        return RedisKeyHelper.buildKey(subnet.toString(),nodeId.toString());
     }
 
     /**

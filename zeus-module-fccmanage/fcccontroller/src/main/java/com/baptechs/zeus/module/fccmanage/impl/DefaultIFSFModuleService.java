@@ -52,6 +52,7 @@ public class DefaultIFSFModuleService implements IFSFModuleService,InitializingB
                                 deviceMap               =new ConcurrentHashMap<>();
     ConcurrentHashMap<String,Bootstrap>
                                 connectionMap           =new ConcurrentHashMap<>();
+    ThreadPoolExecutor          poolExecutor            =new ThreadPoolExecutor(4,10,10,TimeUnit.SECONDS,new SynchronousQueue<Runnable>());
 
 
 
@@ -145,18 +146,23 @@ public class DefaultIFSFModuleService implements IFSFModuleService,InitializingB
     }
 
     @Override
-    public void onReceiveHeartbeat(HeartbeatMessage message){
-        String key=getDeviceKeyByLogicalNode(message.getSubnet(), message.getNodeId());
+    public void onReceiveHeartbeat(final HeartbeatMessage message){
+        String key=message.getDeviceKey();
         if(!deviceMap.containsKey(key)){
             synchronized (this){
                 if(!deviceMap.containsKey(key)){
                     switch (message.getSubnet()){
                         case SubnetType.Dispenser:
-                            Dispenser dispenser=new Dispenser();
+                            final Dispenser dispenser=new Dispenser();
                             dispenser.setLnao(message.getLnao());
                             dispenser.setLastHeartBeat(new Date());
-                            deviceMap.put(key,dispenser);
-                            initDispenser(dispenser);
+                            deviceMap.put(key, dispenser);
+                            poolExecutor.submit(new Runnable() {
+                                @Override
+                                public void run() {
+                                    initDispenser(dispenser,message,null);
+                                }
+                            });
                         break;
                         case SubnetType.TANK_LEVEL_GAUGE:
                             FuelTank fuelTank=new FuelTank();
@@ -213,7 +219,6 @@ public class DefaultIFSFModuleService implements IFSFModuleService,InitializingB
                                     return;
                                 }
                                 Dispenser dispenser=(Dispenser)device;
-                                dispenser.setStatus((int)message.getDataMap().get(dataId)[0]);
                                 break;
                             case FPDataId.Log_Noz_State:
                                 break;
@@ -226,8 +231,30 @@ public class DefaultIFSFModuleService implements IFSFModuleService,InitializingB
         }
     }
 
-    private void initDispenser(Dispenser dispenser){
-        //
+    private void initDispenser(Dispenser dispenser,HeartbeatMessage heartbeatMessage,ApplicationMessage applicationMessage){
+
+        //0.建立连接
+        //1.设置心跳间隔
+        //2.设置加油模式数量
+        //3.读取FP(加油点)数量
+        //4.读取所有FP的状态
+        //5.读取脱机交易
+
+        switch (dispenser.getInitStatus()){
+            case Dispenser.INIT_STATUS_NONE:
+                if(ConnectionHolder.putConnect(dispenser.getIp(),dispenser.getPort())){
+                    dispenser.setInitStatus(Dispenser.INIT_STATION_CONNECT);
+                }else {
+                    logger.error("establish connection to dispenser false,message:"+JSONObject.toJSONString(heartbeatMessage));
+                    deviceMap.remove(heartbeatMessage.getDeviceKey());
+                    return;
+                }
+                break;
+            case Dispenser.INIT_STATUS_CHECK_HEARTBEAT:
+                break;
+        }
+
+
     }
 
     private String getDeviceKeyByLogicalNode(int subnet,int node){
@@ -235,5 +262,9 @@ public class DefaultIFSFModuleService implements IFSFModuleService,InitializingB
     }
     private String getConnectionKey(String host,int port){
         return RedisKeyHelper.buildKey(host,String.valueOf(port));
+    }
+
+    private Bootstrap createConnection(String ip,int port){
+        return null;
     }
 }
